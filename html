@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SmartTracker AI Pro</title>
+  <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #161f30;
+      --card-inner: #1f2d45;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --primary: #10b981;
+      --primary-glow: rgba(16, 185, 129, 0.2);
+      --ai-color: #8b5cf6;
+      --ai-glow: rgba(139, 92, 246, 0.25);
+      --protein: #3b82f6;
+      --carbs: #f59e0b;
+      --fat: #ec4899;
+      --danger: #ef4444;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 16px; padding-bottom: 90px; }
+
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .app-title { font-size: 1.3rem; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
+    .top-btns { display: flex; gap: 8px; }
+    .icon-btn { background: var(--card); border: 1px solid var(--card-inner); color: var(--text); padding: 8px 12px; border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+
+    .hero-card { background: var(--card); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.05); }
+    .cal-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+    .cal-remaining { font-size: 1.8rem; font-weight: 800; }
+    .cal-sub { font-size: 0.85rem; color: var(--muted); }
+
+    .macro-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+    .macro-box { background: var(--card-inner); padding: 10px; border-radius: 12px; text-align: center; }
+    .macro-lbl { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+    .macro-box.p .macro-lbl { color: var(--protein); }
+    .macro-box.c .macro-lbl { color: var(--carbs); }
+    .macro-box.f .macro-lbl { color: var(--fat); }
+    .macro-val { font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; }
+    .progress-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 0%; border-radius: 99px; transition: width 0.3s ease; }
+    .p-fill { background: var(--protein); }
+    .c-fill { background: var(--carbs); }
+    .f-fill { background: var(--fat); }
+
+    .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .btn { background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px var(--primary-glow); }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--card-inner); box-shadow: none; }
+    .btn-ai { background: var(--ai-color); color: #fff; box-shadow: 0 4px 14px var(--ai-glow); grid-column: span 2; }
+
+    #scanner-wrap { display: none; position: relative; width: 100%; height: 260px; background: #000; border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; border: 2px solid var(--primary); }
+    #scanner-wrap video { width: 100%; height: 100%; object-fit: cover; }
+    .scanner-aim { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 75%; height: 130px; border: 2px dashed var(--primary); border-radius: 12px; pointer-events: none; }
+
+    .meal-card { background: var(--card); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.03); }
+    .meal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .meal-name { font-weight: 700; font-size: 1rem; }
+    .meal-cal { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+    .meal-items { display: flex; flex-direction: column; gap: 8px; }
+    .food-item { display: flex; justify-content: space-between; align-items: center; background: var(--card-inner); padding: 8px 12px; border-radius: 10px; font-size: 0.88rem; }
+    .food-title { font-weight: 600; }
+    .food-meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .del-btn { background: none; border: none; color: var(--danger); font-size: 1.1rem; cursor: pointer; padding: 2px 6px; }
+
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: flex-end; justify-content: center; }
+    .modal-sheet { background: var(--card); width: 100%; max-width: 500px; max-height: 85vh; border-radius: 24px 24px 0 0; padding: 20px; overflow-y: auto; border-top: 1px solid rgba(255,255,255,0.1); }
+    .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .sheet-title { font-size: 1.15rem; font-weight: 700; }
+    .close-btn { background: none; border: none; color: var(--muted); font-size: 1.3rem; cursor: pointer; }
+
+    .field-group { margin-bottom: 14px; }
+    .field-label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+    .text-input, .select-input, textarea { width: 100%; padding: 12px; background: var(--bg); border: 1px solid var(--card-inner); border-radius: 10px; color: var(--text); font-size: 0.95rem; }
+    .quick-chips { display: flex; gap: 8px; margin-top: 8px; }
+    .chip { background: var(--card-inner); border: 1px solid rgba(255,255,255,0.1); color: var(--text); padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: 600; }
+    
+    .loading-spinner { display: none; text-align: center; padding: 20px; color: var(--ai-color); font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <div class="app-title">SmartTracker</div>
+    <div class="top-btns">
+      <button class="icon-btn" onclick="openKeyModal()">🔑 Key</button>
+      <button class="icon-btn" onclick="openCalcModal()">🎯 Ziel</button>
+    </div>
+  </div>
+
+  <div class="hero-card">
+    <div class="cal-header">
+      <div>
+        <div class="cal-remaining" id="remaining-cal">0</div>
+        <div class="cal-sub">kcal verbleibend</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 1.1rem; font-weight: 700;" id="eaten-cal">0</div>
+        <div class="cal-sub" id="target-cal-lbl">Ziel: 2050 kcal</div>
+      </div>
+    </div>
+    <div class="progress-bg"><div class="progress-fill" id="cal-bar" style="background: var(--primary);"></div></div>
+
+    <div class="macro-grid">
+      <div class="macro-box p">
+        <div class="macro-lbl">Protein</div>
+        <div class="macro-val" id="macro-p-val">0 / 160g</div>
+        <div class="progress-bg"><div class="progress-fill p-fill" id="p-bar"></div></div>
+      </div>
+      <div class="macro-box c">
+        <div class="macro-lbl">Carbs</div>
+        <div class="macro-val" id="macro-c-val">0 / 220g</div>
+        <div class="progress-bg"><div class="progress-fill c-fill" id="c-bar"></div></div>
+      </div>
+      <div class="macro-box f">
+        <div class="macro-lbl">Fett</div>
+        <div class="macro-val" id="macro-f-val">0 / 60g</div>
+        <div class="progress-bg"><div class="progress-fill f-fill" id="f-bar"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aktionen -->
+  <div class="action-row">
+    <button class="btn btn-ai" onclick="openAiModal()">✨ KI Teller-Foto oder Text</button>
+    <button class="btn" id="scan-toggle-btn" onclick="toggleScanner()">📷 Scan Barcode</button>
+    <button class="btn btn-secondary" onclick="openManualCodeModal()">⌨️ Manuell</button>
+  </div>
+
+  <div id="scanner-wrap"><div class="scanner-aim"></div></div>
+
+  <!-- Mahlzeiten -->
+  <div id="meals-container">
+    <div class="meal-card">
+      <div class="meal-head"><div class="meal-name">🌅 Frühstück</div><div class="meal-cal" id="cal-breakfast">0 kcal</div></div>
+      <div class="meal-items" id="items-breakfast"></div>
+    </div>
+    <div class="meal-card">
+      <div class="meal-head"><div class="meal-name">☀️ Mittagessen</div><div class="meal-cal" id="cal-lunch">0 kcal</div></div>
+      <div class="meal-items" id="items-lunch"></div>
+    </div>
+    <div class="meal-card">
+      <div class="meal-head"><div class="meal-name">🌙 Abendessen</div><div class="meal-cal" id="cal-dinner">0 kcal</div></div>
+      <div class="meal-items" id="items-dinner"></div>
+    </div>
+    <div class="meal-card">
+      <div class="meal-head"><div class="meal-name">🍎 Snacks</div><div class="meal-cal" id="cal-snack">0 kcal</div></div>
+      <div class="meal-items" id="items-snack"></div>
+    </div>
+  </div>
+
+  <button class="btn btn-secondary" style="width: 100%; margin-top: 10px;" onclick="resetDay()">Tag leeren</button>
+
+  <!-- MODAL: KI TRACKER (Foto / Text) -->
+  <div class="modal" id="ai-modal">
+    <div class="modal-sheet">
+      <div class="sheet-head">
+        <div class="sheet-title">✨ KI Mahlzeit-Erkennung</div>
+        <button class="close-btn" onclick="closeModal('ai-modal')">✕</button>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Option A: Foto vom Teller machen / hochladen</label>
+        <input type="file" id="ai-file-input" accept="image/*" class="text-input">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Option B: Beschreibung eingeben</label>
+        <textarea id="ai-text-input" rows="2" class="text-input" placeholder="z. B. 250g Magerquark mit 30g Haferflocken und 1 Banane"></textarea>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Mahlzeit</label>
+        <select id="ai-meal-target" class="select-input">
+          <option value="lunch">Mittagessen</option>
+          <option value="dinner">Abendessen</option>
+          <option value="breakfast">Frühstück</option>
+          <option value="snack">Snack</option>
+        </select>
+      </div>
+
+      <div id="ai-loading" class="loading-spinner">Gemini analysiert Nährwerte... ⏳</div>
+
+      <button class="btn btn-ai" style="width: 100%;" id="ai-submit-btn" onclick="processWithGemini()">Per KI berechnen & eintragen</button>
+    </div>
+  </div>
+
+  <!-- MODAL: API KEY EINGEBEN -->
+  <div class="modal" id="key-modal">
+    <div class="modal-sheet">
+      <div class="sheet-head">
+        <div class="sheet-title">Google AI Studio Key</div>
+        <button class="close-btn" onclick="closeModal('key-modal')">✕</button>
+      </div>
+      <p style="font-size: 0.8rem; color: var(--muted); margin-bottom: 12px;">
+        Kostenlosen Key holen auf: <b>aistudio.google.com</b> -> "Get API Key". Er wird rein lokal auf deinem Handy gesichert.
+      </p>
+      <div class="field-group">
+        <label class="field-label">Dein API Key</label>
+        <input type="password" id="gemini-key-input" class="text-input" placeholder="AIzaSy...">
+      </div>
+      <button class="btn" style="width: 100%;" onclick="saveGeminiKey()">Speichern</button>
+    </div>
+  </div>
+
+  <!-- MODAL: Normales Produkt Hinzufügen (Barcode) -->
+  <div class="modal" id="add-modal">
+    <div class="modal-sheet">
+      <div class="sheet-head">
+        <div class="sheet-title" id="add-title">Produkt</div>
+        <button class="close-btn" onclick="closeModal('add-modal')">✕</button>
+      </div>
+      <p id="add-base" style="font-size: 0.85rem; color: var(--muted); margin-bottom: 14px;"></p>
+      <div class="field-group">
+        <label class="field-label">Gramm</label>
+        <input type="number" id="add-grams" class="text-input" value="100">
+        <div class="quick-chips">
+          <span class="chip" onclick="setGrams(50)">50g</span>
+          <span class="chip" onclick="setGrams(100)">100g</span>
+          <span class="chip" onclick="setGrams(250)">250g</span>
+          <span class="chip" onclick="setGrams(500)">500g</span>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Mahlzeit</label>
+        <select id="add-meal" class="select-input">
+          <option value="breakfast">Frühstück</option>
+          <option value="lunch">Mittagessen</option>
+          <option value="dinner">Abendessen</option>
+          <option value="snack">Snack</option>
+        </select>
+      </div>
+      <button class="btn" style="width: 100%;" onclick="confirmAddFood()">Hinzufügen</button>
+    </div>
+  </div>
+
+  <!-- MODAL: Manuelle Code-Suche -->
+  <div class="modal" id="manual-modal">
+    <div class="modal-sheet">
+      <div class="sheet-head"><div class="sheet-title">Barcode eingeben</div><button class="close-btn" onclick="closeModal('manual-modal')">✕</button></div>
+      <div class="field-group">
+        <label class="field-label">EAN Code</label>
+        <input type="number" id="manual-code-input" class="text-input" placeholder="z. B. 5449000131805">
+      </div>
+      <button class="btn" style="width: 100%;" onclick="searchManualCode()">Suchen</button>
+    </div>
+  </div>
+
+  <!-- MODAL: Rechner -->
+  <div class="modal" id="calc-modal">
+    <div class="modal-sheet">
+      <div class="sheet-head"><div class="sheet-title">Ziel-Rechner</div><button class="close-btn" onclick="closeModal('calc-modal')">✕</button></div>
+      <div class="field-group"><label class="field-label">Geschlecht</label><select id="calc-gender" class="select-input"><option value="m">Männlich</option><option value="w">Weiblich</option></select></div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;" class="field-group">
+        <div><label class="field-label">Gewicht (kg)</label><input type="number" id="calc-weight" class="text-input" value="75"></div>
+        <div><label class="field-label">Größe (cm)</label><input type="number" id="calc-height" class="text-input" value="180"></div>
+        <div><label class="field-label">Alter</label><input type="number" id="calc-age" class="text-input" value="25"></div>
+      </div>
+      <div class="field-group"><label class="field-label">Aktivitätslevel</label>
+        <select id="calc-activity" class="select-input">
+          <option value="1.2">Sitzend (Büro)</option>
+          <option value="1.375">Leicht aktiv (1–3x Sport)</option>
+          <option value="1.55" selected>Moderat aktiv (3–5x Sport)</option>
+          <option value="1.725">Sehr aktiv</option>
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Ziel</label>
+        <select id="calc-goal" class="select-input">
+          <option value="-400">Fettabbau (-400 kcal)</option>
+          <option value="recomp" selected>Recomp (leichtes Defizit)</option>
+          <option value="0">Halten</option>
+          <option value="250">Muskelaufbau (+250 kcal)</option>
+        </select>
+      </div>
+      <button class="btn" style="width: 100%;" onclick="runMacroCalculator()">Berechnen & Speichern</button>
+    </div>
+  </div>
+
+  <script>
+    let userTargets = JSON.parse(localStorage.getItem('st_targets')) || { kcal: 2050, p: 160, c: 220, f: 60 };
+    let logData = JSON.parse(localStorage.getItem('st_log')) || { breakfast: [], lunch: [], dinner: [], snack: [] };
+    let geminiKey = localStorage.getItem('gemini_api_key') || '';
+    let tempProduct = null;
+    let isScanning = false;
+
+    renderTargets();
+    renderLog();
+
+    function saveGeminiKey() {
+      const k = document.getElementById('gemini-key-input').value.trim();
+      if (!k) return;
+      localStorage.setItem('gemini_api_key', k);
+      geminiKey = k;
+      closeModal('key-modal');
+      alert("API Key sicher auf deinem Handy gespeichert!");
+    }
+
+    // GEMINI KI ANALYSE LOGIK
+    async function processWithGemini() {
+      if (!geminiKey) {
+        alert("Bitte hinterlege zuerst oben rechts unter '🔑 Key' deinen kostenlosen Google AI Studio Key!");
+        openKeyModal();
+        return;
+      }
+
+      const fileInput = document.getElementById('ai-file-input');
+      const textInput = document.getElementById('ai-text-input').value.trim();
+      const meal = document.getElementById('ai-meal-target').value;
+      const file = fileInput.files[0];
+
+      if (!file && !textInput) {
+        alert("Bitte wähle entweder ein Teller-Foto aus oder beschreibe die Mahlzeit im Textfeld.");
+        return;
+      }
+
+      document.getElementById('ai-loading').style.display = 'block';
+      document.getElementById('ai-submit-btn').disabled = true;
+
+      try {
+        let contents = [];
+        let promptText = `Du bist ein präziser Ernährungsberater. Analysiere das Bild oder die Beschreibung.
+Antworte AUSSCHLIESSLICH im folgenden JSON-Format ohne Markdown-Fences, ohne Backticks:
+{"name": "Kurzer Name des Gerichts", "grams": 350, "kcal": 450, "p": 35, "c": 40, "f": 15}`;
+
+        if (file) {
+          const base64Data = await toBase64(file);
+          contents.push({
+            parts: [
+              { text: promptText + (textInput ? ` Kontext: ${textInput}` : "") },
+              { inline_data: { mime_type: file.type, data: base64Data.split(',')[1] } }
+            ]
+          });
+        } else {
+          contents.push({
+            parts: [{ text: promptText + ` Mahlzeit: ${textInput}` }]
+          });
+        }
+
+        // Gemini 2.5 Flash Endpoint
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: contents })
+        });
+
+        const resData = await response.json();
+        const rawText = resData.candidates[0].content.parts[0].text.trim().replace(/```json/g, '').replace(/```/g, '');
+        const foodResult = JSON.parse(rawText);
+
+        const entry = {
+          id: Date.now(),
+          name: foodResult.name,
+          grams: foodResult.grams || 100,
+          kcal: Math.round(foodResult.kcal),
+          p: Math.round(foodResult.p),
+          c: Math.round(foodResult.c),
+          f: Math.round(foodResult.f)
+        };
+
+        logData[meal].push(entry);
+        localStorage.setItem('st_log', JSON.stringify(logData));
+        
+        closeModal('ai-modal');
+        document.getElementById('ai-file-input').value = '';
+        document.getElementById('ai-text-input').value = '';
+        renderLog();
+        alert(`Eingetragen: ${entry.name} (${entry.kcal} kcal, ${entry.p}g Protein)`);
+      } catch (err) {
+        alert("Fehler bei der KI-Erkennung. Bitte Key überprüfen oder erneut versuchen: " + err.message);
+      } finally {
+        document.getElementById('ai-loading').style.display = 'none';
+        document.getElementById('ai-submit-btn').disabled = false;
+      }
+    }
+
+    function toBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+      });
+    }
+
+    // TARGETS RENDERN
+    function renderTargets() {
+      document.getElementById('target-cal-lbl').innerText = `Ziel: ${userTargets.kcal} kcal`;
+      document.getElementById('macro-p-val').innerText = `0 / ${userTargets.p}g`;
+      document.getElementById('macro-c-val').innerText = `0 / ${userTargets.c}g`;
+      document.getElementById('macro-f-val').innerText = `0 / ${userTargets.f}g`;
+    }
+
+    // RECHNER
+    function runMacroCalculator() {
+      const g = document.getElementById('calc-gender').value;
+      const w = parseFloat(document.getElementById('calc-weight').value);
+      const h = parseFloat(document.getElementById('calc-height').value);
+      const a = parseFloat(document.getElementById('calc-age').value);
+      const act = parseFloat(document.getElementById('calc-activity').value);
+      const goal = document.getElementById('calc-goal').value;
+
+      let bmr = (10 * w) + (6.25 * h) - (5 * a) + ((g === 'm') ? 5 : -161);
+      let tdee = Math.round(bmr * act);
+      let targetKcal = goal === 'recomp' ? Math.round(tdee - 150) : Math.round(tdee + parseInt(goal));
+
+      const proteinGrams = Math.round(w * 2.2);
+      const fatGrams = Math.round(w * 0.85);
+      const carbGrams = Math.max(50, Math.round((targetKcal - ((proteinGrams * 4) + (fatGrams * 9))) / 4));
+
+      userTargets = { kcal: targetKcal, p: proteinGrams, c: carbGrams, f: fatGrams };
+      localStorage.setItem('st_targets', JSON.stringify(userTargets));
+      renderTargets();
+      renderLog();
+      closeModal('calc-modal');
+    }
+
+    // BARCODE FETCH (Open Food Facts)
+    async function fetchBarcodeData(code) {
+      try {
+        const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json`);
+        const d = await res.json();
+        if (d.status === 1) {
+          const p = d.product;
+          const n = p.nutriments || {};
+          tempProduct = {
+            name: p.product_name || "Unbekannt",
+            kcal100: Math.round(n['energy-kcal_100g'] || 0),
+            p100: parseFloat((n.proteins_100g || 0).toFixed(1)),
+            c100: parseFloat((n.carbohydrates_100g || 0).toFixed(1)),
+            f100: parseFloat((n.fat_100g || 0).toFixed(1))
+          };
+          document.getElementById('add-title').innerText = tempProduct.name;
+          document.getElementById('add-base').innerText = `100g: ${tempProduct.kcal100} kcal | P: ${tempProduct.p100}g | C: ${tempProduct.c100}g | F: ${tempProduct.f100}g`;
+          document.getElementById('add-modal').style.display = 'flex';
+        } else {
+          alert("Produkt nicht gefunden.");
+        }
+      } catch (e) { alert("Datenbankfehler."); }
+    }
+
+    function setGrams(g) { document.getElementById('add-grams').value = g; }
+
+    function confirmAddFood() {
+      const g = parseFloat(document.getElementById('add-grams').value);
+      const m = document.getElementById('add-meal').value;
+      if (!g || g <= 0) return;
+      const factor = g / 100;
+      logData[m].push({
+        id: Date.now(),
+        name: tempProduct.name,
+        grams: g,
+        kcal: Math.round(tempProduct.kcal100 * factor),
+        p: parseFloat((tempProduct.p100 * factor).toFixed(1)),
+        c: parseFloat((tempProduct.c100 * factor).toFixed(1)),
+        f: parseFloat((tempProduct.f100 * factor).toFixed(1))
+      });
+      localStorage.setItem('st_log', JSON.stringify(logData));
+      closeModal('add-modal');
+      renderLog();
+    }
+
+    function removeEntry(m, id) {
+      logData[m] = logData[m].filter(x => x.id !== id);
+      localStorage.setItem('st_log', JSON.stringify(logData));
+      renderLog();
+    }
+
+    function resetDay() {
+      if (confirm("Heutigen Tag zurücksetzen?")) {
+        logData = { breakfast: [], lunch: [], dinner: [], snack: [] };
+        localStorage.setItem('st_log', JSON.stringify(logData));
+        renderLog();
+      }
+    }
+
+    function renderLog() {
+      let totKcal = 0, totP = 0, totC = 0, totF = 0;
+      ['breakfast', 'lunch', 'dinner', 'snack'].forEach(m => {
+        const c = document.getElementById(`items-${m}`);
+        c.innerHTML = '';
+        let mk = 0;
+        logData[m].forEach(item => {
+          totKcal += item.kcal; totP += item.p; totC += item.c; totF += item.f; mk += item.kcal;
+          const row = document.createElement('div');
+          row.className = 'food-item';
+          row.innerHTML = `<div><div class="food-title">${item.name} (${item.grams}g)</div><div class="food-meta">${item.kcal} kcal | P: ${item.p}g | C: ${item.c}g | F: ${item.f}g</div></div><button class="del-btn" onclick="removeEntry('${m}', ${item.id})">✕</button>`;
+          c.appendChild(row);
+        });
+        document.getElementById(`cal-${m}`).innerText = `${mk} kcal`;
+      });
+
+      const rem = userTargets.kcal - totKcal;
+      document.getElementById('remaining-cal').innerText = rem;
+      document.getElementById('remaining-cal').style.color = rem < 0 ? 'var(--danger)' : 'var(--text)';
+      document.getElementById('eaten-cal').innerText = `${totKcal} gegessen`;
+      document.getElementById('cal-bar').style.width = Math.min(100, Math.round((totKcal / userTargets.kcal) * 100)) + '%';
+      document.getElementById('macro-p-val').innerText = `${Math.round(totP)} / ${userTargets.p}g`;
+      document.getElementById('p-bar').style.width = Math.min(100, Math.round((totP / userTargets.p) * 100)) + '%';
+      document.getElementById('macro-c-val').innerText = `${Math.round(totC)} / ${userTargets.c}g`;
+      document.getElementById('c-bar').style.width = Math.min(100, Math.round((totC / userTargets.c) * 100)) + '%';
+      document.getElementById('macro-f-val').innerText = `${Math.round(totF)} / ${userTargets.f}g`;
+      document.getElementById('f-bar').style.width = Math.min(100, Math.round((totF / userTargets.f) * 100)) + '%';
+    }
+
+    function toggleScanner() {
+      const wrap = document.getElementById('scanner-wrap');
+      const btn = document.getElementById('scan-toggle-btn');
+      if (isScanning) {
+        Quagga.stop(); wrap.style.display = 'none'; btn.innerText = '📷 Scan Barcode'; isScanning = false;
+      } else {
+        wrap.style.display = 'block'; btn.innerText = '✕ Stoppen'; isScanning = true;
+        Quagga.init({
+          inputStream: { name: "Live", type: "LiveStream", target: wrap, constraints: { facingMode: "environment" } },
+          decoder: { readers: ["ean_reader", "ean_8_reader"] }
+        }, err => { if (err) { alert(err); toggleScanner(); return; } Quagga.start(); });
+        Quagga.onDetected(async res => { toggleScanner(); await fetchBarcodeData(res.codeResult.code); });
+      }
+    }
+
+    function openAiModal() { document.getElementById('ai-modal').style.display = 'flex'; }
+    function openKeyModal() { 
+      document.getElementById('gemini-key-input').value = geminiKey;
+      document.getElementById('key-modal').style.display = 'flex'; 
+    }
+    function openCalcModal() { document.getElementById('calc-modal').style.display = 'flex'; }
+    function openManualCodeModal() { document.getElementById('manual-modal').style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function searchManualCode() {
+      const c = document.getElementById('manual-code-input').value.trim();
+      if (!c) return;
+      closeModal('manual-modal');
+      fetchBarcodeData(c);
+    }
+  </script>
+</body>
+</html>
