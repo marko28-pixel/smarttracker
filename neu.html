@@ -7,15 +7,15 @@
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
   <style>
     :root {
-      --bg: #09090b;          /* Sehr tiefes Schwarz/Grau */
-      --card: #18181b;        /* Leicht erhelltes Karten-Grau */
-      --card-inner: #27272a;  /* Für Eingabefelder und kleine Boxen */
+      --bg: #09090b;          
+      --card: #18181b;        
+      --card-inner: #27272a;  
       --text: #fafafa;
       --muted: #a1a1aa;
-      --primary: #10b981;     /* Frisches Mintgrün */
+      --primary: #10b981;     
       --primary-glow: rgba(16, 185, 129, 0.3);
       --ai-color: #8b5cf6;
-      --ai-glow: rgba(139, 92, 246, 0.3);
+      --water: #0ea5e9;
       --protein: #3b82f6;
       --carbs: #f59e0b;
       --fat: #ec4899;
@@ -27,11 +27,16 @@
     body { background-color: var(--bg); color: var(--text); padding: 16px; padding-bottom: 100px; }
 
     /* Top Navigation */
-    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-top: 8px; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-top: 8px; }
     .app-title { font-size: 1.4rem; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
     .app-title span { color: var(--primary); }
     .top-btns { display: flex; gap: 8px; }
     .icon-btn { background: var(--card); border: 1px solid var(--card-inner); color: var(--text); padding: 8px 14px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+
+    /* Date Navigator */
+    .date-nav { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05); }
+    .date-btn { background: none; border: none; color: var(--text); font-size: 1.2rem; cursor: pointer; font-weight: bold; padding: 0 10px; }
+    .date-lbl { font-weight: 700; font-size: 1rem; color: var(--primary); }
 
     /* Hero Dashboard */
     .hero-card { background: linear-gradient(145deg, var(--card), #131316); border-radius: var(--radius); padding: 22px; margin-bottom: 24px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
@@ -43,7 +48,6 @@
     /* Progress & Macros */
     .progress-bg { width: 100%; height: 8px; background: var(--card-inner); border-radius: 99px; overflow: hidden; margin-bottom: 20px; }
     .progress-fill { height: 100%; width: 0%; border-radius: 99px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); background: var(--primary); }
-    
     .macro-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     .macro-box { background: var(--card-inner); padding: 12px; border-radius: var(--radius-sm); text-align: center; }
     .macro-lbl { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; }
@@ -52,7 +56,7 @@
     .macro-box.f .macro-lbl { color: var(--fat); }
     .macro-val { font-size: 0.9rem; font-weight: 700; margin-bottom: 8px; }
     .mini-progress-bg { width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; }
-    .mini-progress-fill { height: 100%; border-radius: 99px; }
+    .mini-progress-fill { height: 100%; border-radius: 99px; transition: width 0.3s; }
 
     /* Scanner View */
     #scanner-wrap { display: none; position: relative; width: 100%; height: 300px; background: #000; border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
@@ -60,10 +64,10 @@
     .scanner-aim { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70%; height: 140px; border: 3px solid var(--primary); border-radius: 16px; pointer-events: none; box-shadow: 0 0 0 4000px rgba(0,0,0,0.6); }
     .close-scanner { position: absolute; top: 16px; right: 16px; background: rgba(0,0,0,0.7); color: white; border: none; padding: 10px 16px; border-radius: 99px; font-weight: bold; cursor: pointer; }
 
-    /* Meal Sections */
-    .meal-card { background: var(--card); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+    /* Meal Sections & Modules */
+    .meal-card { background: var(--card); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.03); }
     .meal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .meal-name { font-weight: 700; font-size: 1.05rem; }
+    .meal-name { font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; }
     .meal-cal { font-size: 0.9rem; color: var(--primary); font-weight: 600; }
     .meal-items { display: flex; flex-direction: column; gap: 8px; }
     .food-item { display: flex; justify-content: space-between; align-items: center; background: var(--card-inner); padding: 12px; border-radius: var(--radius-sm); }
@@ -71,55 +75,60 @@
     .food-meta { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
     .del-btn { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: none; width: 32px; height: 32px; border-radius: 8px; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
-    /* Floating Action Button (FAB) */
+    /* Habit Checkboxes */
+    .habit-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--card-inner); }
+    .habit-row:last-child { border-bottom: none; }
+    .habit-checkbox { width: 22px; height: 22px; accent-color: var(--primary); cursor: pointer; }
+    .habit-label { font-size: 0.95rem; font-weight: 500; cursor: pointer; flex: 1; }
+
+    /* Floating Action Button */
     .fab { position: fixed; bottom: 24px; right: 24px; width: 64px; height: 64px; background: var(--primary); color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 32px; box-shadow: 0 8px 24px var(--primary-glow); cursor: pointer; border: none; z-index: 50; transition: transform 0.2s; }
     .fab:active { transform: scale(0.9); }
 
-    /* Modals & Bottom Sheets */
+    /* Modals */
     .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; align-items: flex-end; justify-content: center; animation: fadeIn 0.2s ease; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .modal-sheet { background: var(--card); width: 100%; max-width: 500px; max-height: 90vh; border-radius: 28px 28px 0 0; padding: 24px; overflow-y: auto; border-top: 1px solid rgba(255,255,255,0.05); animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-    
     .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     .sheet-title { font-size: 1.2rem; font-weight: 700; }
     .close-btn { background: var(--card-inner); border: none; color: var(--text); width: 36px; height: 36px; border-radius: 50%; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
-    /* Action Menu inside Modal */
+    /* Action Menu & Buttons */
     .action-btn { width: 100%; background: var(--card-inner); border: 1px solid rgba(255,255,255,0.05); color: var(--text); padding: 16px; border-radius: var(--radius-sm); font-size: 1rem; font-weight: 600; text-align: left; margin-bottom: 12px; cursor: pointer; display: flex; align-items: center; gap: 12px; }
     .action-btn.ai { border-color: var(--ai-color); color: #fff; background: rgba(139, 92, 246, 0.15); }
     .action-icon { font-size: 1.4rem; }
-
-    /* Forms */
+    .btn { background: var(--primary); color: #fff; border: none; padding: 16px; border-radius: var(--radius-sm); font-weight: 700; font-size: 1rem; cursor: pointer; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 14px var(--primary-glow); }
+    
+    /* Inputs */
     .field-group { margin-bottom: 16px; }
     .field-label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
     .text-input, .select-input, textarea { width: 100%; padding: 14px; background: var(--bg); border: 1px solid var(--card-inner); border-radius: var(--radius-sm); color: var(--text); font-size: 1rem; outline: none; }
-    .text-input:focus { border-color: var(--primary); }
-    
     .quick-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .chip { background: var(--card-inner); color: var(--text); padding: 8px 16px; border-radius: 99px; font-size: 0.85rem; cursor: pointer; font-weight: 600; }
-    .btn { background: var(--primary); color: #fff; border: none; padding: 16px; border-radius: var(--radius-sm); font-weight: 700; font-size: 1rem; cursor: pointer; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 14px var(--primary-glow); }
-    .btn-ai { background: var(--ai-color); box-shadow: 0 4px 14px var(--ai-glow); }
+    .chip { background: var(--card-inner); color: var(--text); padding: 8px 16px; border-radius: 99px; font-size: 0.85rem; cursor: pointer; font-weight: 600; border: 1px solid rgba(255,255,255,0.05); }
+    .chip.water-chip { color: var(--water); border-color: rgba(14, 165, 233, 0.3); background: rgba(14, 165, 233, 0.1); }
 
-    /* Search Results */
     #search-results { max-height: 300px; overflow-y: auto; margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
     .search-result-item { background: var(--card-inner); padding: 12px; border-radius: var(--radius-sm); cursor: pointer; }
-    .search-result-name { font-weight: 600; font-size: 0.95rem; }
-    .search-result-brand { font-size: 0.75rem; color: var(--muted); }
   </style>
 </head>
 <body>
 
-  <!-- Top Navigation -->
   <div class="top-bar">
     <div class="app-title">Smart<span>Tracker</span></div>
     <div class="top-btns">
-      <button class="icon-btn" onclick="openModal('key-modal')">🔑 KI-Key</button>
-      <button class="icon-btn" onclick="openModal('calc-modal')">🎯 Ziele</button>
+      <button class="icon-btn" onclick="openModal('calc-modal')">🎯 Profil</button>
     </div>
   </div>
 
-  <!-- Hero Dashboard -->
+  <!-- DATE NAVIGATOR -->
+  <div class="date-nav">
+    <button class="date-btn" onclick="changeDate(-1)">◀</button>
+    <div class="date-lbl" id="current-date-lbl">Heute</div>
+    <button class="date-btn" onclick="changeDate(1)">▶</button>
+  </div>
+
+  <!-- HERO DASHBOARD -->
   <div class="hero-card">
     <div class="cal-header">
       <div>
@@ -136,272 +145,289 @@
     <div class="macro-grid">
       <div class="macro-box p">
         <div class="macro-lbl">Protein</div>
-        <div class="macro-val" id="macro-p-val">0 / 160g</div>
+        <div class="macro-val" id="macro-p-val">0/160g</div>
         <div class="mini-progress-bg"><div class="mini-progress-fill" id="p-bar" style="background: var(--protein);"></div></div>
       </div>
       <div class="macro-box c">
         <div class="macro-lbl">Carbs</div>
-        <div class="macro-val" id="macro-c-val">0 / 220g</div>
+        <div class="macro-val" id="macro-c-val">0/220g</div>
         <div class="mini-progress-bg"><div class="mini-progress-fill" id="c-bar" style="background: var(--carbs);"></div></div>
       </div>
       <div class="macro-box f">
         <div class="macro-lbl">Fett</div>
-        <div class="macro-val" id="macro-f-val">0 / 60g</div>
+        <div class="macro-val" id="macro-f-val">0/60g</div>
         <div class="mini-progress-bg"><div class="mini-progress-fill" id="f-bar" style="background: var(--fat);"></div></div>
       </div>
     </div>
   </div>
 
-  <!-- Live Scanner View (versteckt bis aktiviert) -->
   <div id="scanner-wrap">
     <button class="close-scanner" onclick="toggleScanner()">✕ Schließen</button>
     <div class="scanner-aim"></div>
   </div>
 
-  <!-- Mahlzeiten (Tagebuch) -->
-  <div id="meals-container">
-    <div class="meal-card">
-      <div class="meal-head"><div class="meal-name">🌅 Frühstück</div><div class="meal-cal" id="cal-breakfast">0 kcal</div></div>
-      <div class="meal-items" id="items-breakfast"></div>
+  <!-- WASSER TRACKER -->
+  <div class="meal-card">
+    <div class="meal-head">
+      <div class="meal-name">💧 Wasser</div>
+      <div class="meal-cal" id="water-val" style="color: var(--water);">0 ml</div>
     </div>
-    <div class="meal-card">
-      <div class="meal-head"><div class="meal-name">☀️ Mittagessen</div><div class="meal-cal" id="cal-lunch">0 kcal</div></div>
-      <div class="meal-items" id="items-lunch"></div>
-    </div>
-    <div class="meal-card">
-      <div class="meal-head"><div class="meal-name">🌙 Abendessen</div><div class="meal-cal" id="cal-dinner">0 kcal</div></div>
-      <div class="meal-items" id="items-dinner"></div>
-    </div>
-    <div class="meal-card">
-      <div class="meal-head"><div class="meal-name">🍎 Snacks</div><div class="meal-cal" id="cal-snack">0 kcal</div></div>
-      <div class="meal-items" id="items-snack"></div>
+    <div class="quick-chips">
+      <span class="chip water-chip" onclick="addWater(250)">+ 250 ml (Glas)</span>
+      <span class="chip water-chip" onclick="addWater(500)">+ 500 ml (Flasche)</span>
+      <span class="chip" onclick="resetWater()" style="color:var(--danger); border-color:transparent; background:transparent;">↺ Reset</span>
     </div>
   </div>
 
-  <!-- Floating Action Button -->
+  <!-- MEALS -->
+  <div id="meals-container">
+    <div class="meal-card"><div class="meal-head"><div class="meal-name">🌅 Frühstück</div><div class="meal-cal" id="cal-breakfast">0 kcal</div></div><div class="meal-items" id="items-breakfast"></div></div>
+    <div class="meal-card"><div class="meal-head"><div class="meal-name">☀️ Mittag</div><div class="meal-cal" id="cal-lunch">0 kcal</div></div><div class="meal-items" id="items-lunch"></div></div>
+    <div class="meal-card"><div class="meal-head"><div class="meal-name">🌙 Abend</div><div class="meal-cal" id="cal-dinner">0 kcal</div></div><div class="meal-items" id="items-dinner"></div></div>
+    <div class="meal-card"><div class="meal-head"><div class="meal-name">🍎 Snacks</div><div class="meal-cal" id="cal-snack">0 kcal</div></div><div class="meal-items" id="items-snack"></div></div>
+  </div>
+
+  <!-- DAILY HABITS (SUPPLEMENTS) -->
+  <div class="meal-card">
+    <div class="meal-head"><div class="meal-name">✅ Daily Habits & Supps</div></div>
+    <div class="habit-row">
+      <input type="checkbox" class="habit-checkbox" id="hab-creatin" onchange="toggleHabit('creatin')">
+      <label class="habit-label" for="hab-creatin">3g Creatin (Monohydrat)</label>
+    </div>
+    <div class="habit-row">
+      <input type="checkbox" class="habit-checkbox" id="hab-vitd" onchange="toggleHabit('vitd')">
+      <label class="habit-label" for="hab-vitd">Vitamin D3+K2</label>
+    </div>
+    <div class="habit-row">
+      <input type="checkbox" class="habit-checkbox" id="hab-omega" onchange="toggleHabit('omega')">
+      <label class="habit-label" for="hab-omega">Omega-3</label>
+    </div>
+    <div class="habit-row">
+      <input type="checkbox" class="habit-checkbox" id="hab-zinc" onchange="toggleHabit('zinc')">
+      <label class="habit-label" for="hab-zinc">Zink</label>
+    </div>
+  </div>
+
+  <!-- FAB -->
   <button class="fab" onclick="openModal('menu-modal')">+</button>
 
-  <!-- MODAL: Hinzufügen-Menü -->
+  <!-- MODALS -->
   <div class="modal" id="menu-modal">
     <div class="modal-sheet">
-      <div class="sheet-head">
-        <div class="sheet-title">Nahrung hinzufügen</div>
-        <button class="close-btn" onclick="closeModal('menu-modal')">✕</button>
-      </div>
-      <button class="action-btn" onclick="switchModal('search-modal')">
-        <span class="action-icon">🔍</span> Textsuche (Name eingeben)
-      </button>
-      <button class="action-btn" onclick="closeModal('menu-modal'); toggleScanner();">
-        <span class="action-icon">📷</span> Barcode scannen
-      </button>
-      <button class="action-btn ai" onclick="switchModal('ai-modal')">
-        <span class="action-icon">✨</span> Teller-Foto scannen (KI)
-      </button>
-      <button class="action-btn" onclick="switchModal('manual-modal')">
-        <span class="action-icon">⌨️</span> EAN-Code tippen
-      </button>
+      <div class="sheet-head"><div class="sheet-title">Hinzufügen</div><button class="close-btn" onclick="closeModal('menu-modal')">✕</button></div>
+      <button class="action-btn" onclick="switchModal('search-modal')"><span class="action-icon">🔍</span> Name eingeben</button>
+      <button class="action-btn" onclick="closeModal('menu-modal'); toggleScanner();"><span class="action-icon">📷</span> Barcode scannen</button>
+      <button class="action-btn" onclick="switchModal('manual-modal')"><span class="action-icon">⌨️</span> Code tippen</button>
     </div>
   </div>
 
-  <!-- MODAL: Textsuche (NEU) -->
   <div class="modal" id="search-modal">
     <div class="modal-sheet">
-      <div class="sheet-head">
-        <div class="sheet-title">Produktsuche</div>
-        <button class="close-btn" onclick="closeModal('search-modal')">✕</button>
-      </div>
-      <div class="field-group">
-        <input type="text" id="search-text-input" class="text-input" placeholder="z.B. Banane, Haferflocken, Skyr...">
-      </div>
+      <div class="sheet-head"><div class="sheet-title">Produktsuche</div><button class="close-btn" onclick="closeModal('search-modal')">✕</button></div>
+      <div class="field-group"><input type="text" id="search-text-input" class="text-input" placeholder="z.B. Skyr, Bio-Kornspitz..."></div>
       <button class="btn" onclick="performTextSearch()">Suchen</button>
-      <div id="search-loading" style="display:none; text-align:center; padding:20px; color:var(--primary);">Suche läuft...</div>
       <div id="search-results"></div>
     </div>
   </div>
 
-  <!-- MODAL: Produkt Abwiegen / Eintragen -->
   <div class="modal" id="add-modal">
     <div class="modal-sheet">
-      <div class="sheet-head">
-        <div class="sheet-title" id="add-title">Produkt</div>
-        <button class="close-btn" onclick="closeModal('add-modal')">✕</button>
-      </div>
+      <div class="sheet-head"><div class="sheet-title" id="add-title">Produkt</div><button class="close-btn" onclick="closeModal('add-modal')">✕</button></div>
       <p id="add-base" style="font-size: 0.9rem; color: var(--muted); margin-bottom: 16px; font-weight: 500;"></p>
-      <div class="field-group">
-        <label class="field-label">Menge in Gramm / ml</label>
-        <input type="number" id="add-grams" class="text-input" value="100">
+      <div class="field-group"><label class="field-label">Gramm</label><input type="number" id="add-grams" class="text-input" value="100">
         <div class="quick-chips">
-          <span class="chip" onclick="setGrams(30)">30g</span>
-          <span class="chip" onclick="setGrams(50)">50g</span>
-          <span class="chip" onclick="setGrams(100)">100g</span>
-          <span class="chip" onclick="setGrams(250)">250g</span>
-          <span class="chip" onclick="setGrams(500)">500g</span>
+          <span class="chip" onclick="setGrams(50)">50g</span><span class="chip" onclick="setGrams(100)">100g</span><span class="chip" onclick="setGrams(250)">250g</span>
         </div>
       </div>
-      <div class="field-group">
-        <label class="field-label">Zu Mahlzeit hinzufügen</label>
-        <select id="add-meal" class="select-input">
-          <option value="breakfast">Frühstück</option>
-          <option value="lunch">Mittagessen</option>
-          <option value="dinner">Abendessen</option>
-          <option value="snack">Snack</option>
-        </select>
-      </div>
-      <button class="btn" onclick="confirmAddFood()">Ins Tagebuch eintragen</button>
+      <div class="field-group"><label class="field-label">Mahlzeit</label><select id="add-meal" class="select-input"><option value="breakfast">Frühstück</option><option value="lunch">Mittagessen</option><option value="dinner">Abendessen</option><option value="snack">Snack</option></select></div>
+      <button class="btn" onclick="confirmAddFood()">Eintragen</button>
     </div>
   </div>
 
-  <!-- MODAL: KI Tracker -->
-  <div class="modal" id="ai-modal">
-    <div class="modal-sheet">
-      <div class="sheet-head">
-        <div class="sheet-title">✨ KI Mahlzeit-Scanner</div>
-        <button class="close-btn" onclick="closeModal('ai-modal')">✕</button>
-      </div>
-      <div class="field-group">
-        <label class="field-label">Foto aufnehmen oder hochladen</label>
-        <input type="file" id="ai-file-input" accept="image/*" class="text-input">
-      </div>
-      <div class="field-group">
-        <label class="field-label">Oder einfach beschreiben</label>
-        <textarea id="ai-text-input" rows="2" class="text-input" placeholder="z.B. 2 Spiegeleier mit 1 Scheibe Brot"></textarea>
-      </div>
-      <div class="field-group">
-        <label class="field-label">Mahlzeit</label>
-        <select id="ai-meal-target" class="select-input">
-          <option value="lunch">Mittagessen</option>
-          <option value="dinner">Abendessen</option>
-          <option value="breakfast">Frühstück</option>
-          <option value="snack">Snack</option>
-        </select>
-      </div>
-      <div id="ai-loading" style="display:none; text-align:center; padding:15px; color:var(--ai-color); font-weight:bold;">Analysiere Nährwerte...</div>
-      <button class="btn btn-ai" id="ai-submit-btn" onclick="processWithGemini()">Erkennen & Eintragen</button>
-    </div>
-  </div>
-
-  <!-- Weitere versteckte Modals (Ziele & Key) zur Übersichtlichkeit komprimiert -->
   <div class="modal" id="manual-modal">
     <div class="modal-sheet">
-      <div class="sheet-head"><div class="sheet-title">EAN-Code eingeben</div><button class="close-btn" onclick="closeModal('manual-modal')">✕</button></div>
-      <div class="field-group"><input type="number" id="manual-code-input" class="text-input" placeholder="Code (z.B. 544900...)"></div>
+      <div class="sheet-head"><div class="sheet-title">EAN-Code</div><button class="close-btn" onclick="closeModal('manual-modal')">✕</button></div>
+      <div class="field-group"><input type="number" id="manual-code-input" class="text-input" placeholder="Code"></div>
       <button class="btn" onclick="searchManualCode()">Suchen</button>
-    </div>
-  </div>
-
-  <div class="modal" id="key-modal">
-    <div class="modal-sheet">
-      <div class="sheet-head"><div class="sheet-title">API Key (Google AI Studio)</div><button class="close-btn" onclick="closeModal('key-modal')">✕</button></div>
-      <div class="field-group"><input type="password" id="gemini-key-input" class="text-input" placeholder="AIzaSy..."></div>
-      <button class="btn" onclick="saveGeminiKey()">Speichern</button>
     </div>
   </div>
 
   <div class="modal" id="calc-modal">
     <div class="modal-sheet">
-      <div class="sheet-head"><div class="sheet-title">Ziele berechnen</div><button class="close-btn" onclick="closeModal('calc-modal')">✕</button></div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;" class="field-group">
-        <div><label class="field-label">Gewicht (kg)</label><input type="number" id="calc-weight" class="text-input" value="75"></div>
-        <div><label class="field-label">Ziel</label>
-          <select id="calc-goal" class="select-input">
-            <option value="-400">Defizit / Cut</option>
-            <option value="recomp" selected>Recomp</option>
-            <option value="250">Aufbau</option>
-          </select>
-        </div>
+      <div class="sheet-head"><div class="sheet-title">Ziel-Rechner</div><button class="close-btn" onclick="closeModal('calc-modal')">✕</button></div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;" class="field-group">
+        <div><label class="field-label">Gewicht (kg)</label><input type="number" id="calc-weight" class="text-input" value="65"></div>
+        <div><label class="field-label">Größe (cm)</label><input type="number" id="calc-height" class="text-input" value="178"></div>
+        <div><label class="field-label">Alter</label><input type="number" id="calc-age" class="text-input" value="25"></div>
+      </div>
+      <div class="field-group"><label class="field-label">Ziel</label>
+        <select id="calc-goal" class="select-input">
+          <option value="-400">Cut (-400 kcal)</option>
+          <option value="recomp" selected>Recomposition (Erhalt/Leichtes Defizit)</option>
+          <option value="250">Lean Bulk (+250 kcal)</option>
+        </select>
       </div>
       <button class="btn" onclick="runMacroCalculator()">Speichern</button>
     </div>
   </div>
 
   <script>
-    // DATEN & STORAGE
+    // DATE MANAGEMENT & DB STRUCTURE
+    let currentDate = new Date();
+    
+    function formatDateString(dateObj) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    let dateStr = formatDateString(currentDate);
+
+    // Globale Daten: ein Objekt mit Datum als Keys
+    let historyData = JSON.parse(localStorage.getItem('st_history_log')) || {};
     let userTargets = JSON.parse(localStorage.getItem('st_targets')) || { kcal: 2050, p: 160, c: 220, f: 60 };
-    let logData = JSON.parse(localStorage.getItem('st_log')) || { breakfast: [], lunch: [], dinner: [], snack: [] };
-    let geminiKey = localStorage.getItem('gemini_api_key') || '';
+    
     let tempProduct = null;
     let isScanning = false;
 
+    // Sicherstellen, dass das heutige Datum existiert
+    function getDayData() {
+      if (!historyData[dateStr]) {
+        historyData[dateStr] = { 
+          breakfast: [], lunch: [], dinner: [], snack: [], 
+          water: 0, habits: { creatin: false, vitd: false, omega: false, zinc: false } 
+        };
+      }
+      return historyData[dateStr];
+    }
+
+    function saveDayData() {
+      localStorage.setItem('st_history_log', JSON.stringify(historyData));
+    }
+
+    // DATE NAVIGATION
+    function changeDate(offset) {
+      currentDate.setDate(currentDate.getDate() + offset);
+      dateStr = formatDateString(currentDate);
+      updateDateLabel();
+      renderLog();
+    }
+
+    function updateDateLabel() {
+      const todayStr = formatDateString(new Date());
+      if (dateStr === todayStr) {
+        document.getElementById('current-date-lbl').innerText = "Heute";
+      } else {
+        const parts = dateStr.split('-');
+        document.getElementById('current-date-lbl').innerText = `${parts[2]}.${parts[1]}.${parts[0]}`;
+      }
+    }
+
+    // INIT
+    updateDateLabel();
     renderTargets();
     renderLog();
 
-    // MODAL STEUERUNG
+    // UI & MODALS
     function openModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
     function switchModal(newId) { closeModal('menu-modal'); openModal(newId); }
 
-    // NEU: TEXT-SUCHE API
+    // MODULE: WATER
+    function addWater(amount) {
+      let d = getDayData();
+      d.water += amount;
+      saveDayData();
+      renderLog();
+    }
+    function resetWater() {
+      if(confirm("Wasser für diesen Tag auf 0 setzen?")) {
+        let d = getDayData();
+        d.water = 0;
+        saveDayData();
+        renderLog();
+      }
+    }
+
+    // MODULE: HABITS
+    function toggleHabit(id) {
+      let d = getDayData();
+      const isChecked = document.getElementById(`hab-${id}`).checked;
+      d.habits[id] = isChecked;
+      saveDayData();
+    }
+
+    // MODULE: RECHNER
+    function runMacroCalculator() {
+      const w = parseFloat(document.getElementById('calc-weight').value);
+      const goal = document.getElementById('calc-goal').value;
+      // Simpler TDEE
+      let tdee = 24 * w * 1.55; 
+      let targetKcal = goal === 'recomp' ? Math.round(tdee - 150) : Math.round(tdee + parseInt(goal));
+      userTargets = { 
+        kcal: targetKcal, 
+        p: Math.round(w * 2.2), 
+        c: Math.round((targetKcal - ((w*2.2*4)+(w*0.85*9)))/4), 
+        f: Math.round(w * 0.85) 
+      };
+      localStorage.setItem('st_targets', JSON.stringify(userTargets));
+      renderTargets(); 
+      renderLog(); 
+      closeModal('calc-modal');
+    }
+
+    // MODULE: API & SEARCH
     async function performTextSearch() {
-      const query = document.getElementById('search-text-input').value.trim();
-      if (!query) return;
-
-      document.getElementById('search-loading').style.display = 'block';
-      const resultsContainer = document.getElementById('search-results');
-      resultsContainer.innerHTML = '';
-
+      const q = document.getElementById('search-text-input').value.trim();
+      if (!q) return;
+      const resContainer = document.getElementById('search-results');
+      resContainer.innerHTML = '<div style="color:var(--primary); padding:10px;">Suche läuft...</div>';
       try {
-        const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=15`);
+        const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=15`);
         const data = await res.json();
-        
+        resContainer.innerHTML = '';
         if (data.products && data.products.length > 0) {
           data.products.forEach(p => {
             const n = p.nutriments || {};
             const kcal = Math.round(n['energy-kcal_100g'] || 0);
             const prot = parseFloat((n.proteins_100g || 0).toFixed(1));
-            const carb = parseFloat((n.carbohydrates_100g || 0).toFixed(1));
-            const fat = parseFloat((n.fat_100g || 0).toFixed(1));
-            const name = p.product_name || "Unbekannt";
-            const brand = p.brands || "";
-
-            const div = document.createElement('div');
-            div.className = 'search-result-item';
-            div.innerHTML = `<div class="search-result-name">${name} <span class="search-result-brand">${brand}</span></div>
-                             <div style="font-size:0.8rem; color:var(--muted); margin-top:4px;">100g: ${kcal} kcal | P: ${prot}g</div>`;
-            div.onclick = () => {
-              tempProduct = { name: name, kcal100: kcal, p100: prot, c100: carb, f100: fat };
-              closeModal('search-modal');
-              openAddModal();
-            };
-            resultsContainer.appendChild(div);
+            resContainer.innerHTML += `<div class="search-result-item" onclick="selectSearchItem('${p.product_name || "Unbekannt"}', ${kcal}, ${prot}, ${parseFloat((n.carbohydrates_100g || 0).toFixed(1))}, ${parseFloat((n.fat_100g || 0).toFixed(1))})">
+              <div style="font-weight:600;">${p.product_name || "Unbekannt"} <span style="font-size:0.75rem;color:var(--muted);">${p.brands||""}</span></div>
+              <div style="font-size:0.8rem;color:var(--muted);">100g: ${kcal} kcal | P: ${prot}g</div>
+            </div>`;
           });
-        } else {
-          resultsContainer.innerHTML = '<div style="padding:10px; color:var(--muted);">Keine Produkte gefunden.</div>';
-        }
-      } catch (err) {
-        resultsContainer.innerHTML = '<div style="color:var(--danger);">Fehler bei der Suche.</div>';
-      } finally {
-        document.getElementById('search-loading').style.display = 'none';
-      }
+        } else { resContainer.innerHTML = 'Nichts gefunden.'; }
+      } catch (err) { resContainer.innerHTML = 'Fehler.'; }
     }
 
-    // BARCODE API (Weiterhin aktiv)
+    function selectSearchItem(name, k, p, c, f) {
+      tempProduct = { name: name, kcal100: k, p100: p, c100: c, f100: f };
+      closeModal('search-modal'); openAddModal();
+    }
+
     async function fetchBarcodeData(code) {
       try {
         const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json`);
         const d = await res.json();
         if (d.status === 1) {
-          const p = d.product;
-          const n = p.nutriments || {};
-          tempProduct = {
-            name: p.product_name || "Unbekannt",
-            kcal100: Math.round(n['energy-kcal_100g'] || 0),
-            p100: parseFloat((n.proteins_100g || 0).toFixed(1)),
-            c100: parseFloat((n.carbohydrates_100g || 0).toFixed(1)),
-            f100: parseFloat((n.fat_100g || 0).toFixed(1))
-          };
-          openAddModal();
+          const n = d.product.nutriments || {};
+          selectSearchItem(d.product.product_name || "Unbekannt", Math.round(n['energy-kcal_100g'] || 0), parseFloat((n.proteins_100g || 0).toFixed(1)), parseFloat((n.carbohydrates_100g || 0).toFixed(1)), parseFloat((n.fat_100g || 0).toFixed(1)));
         } else { alert("Barcode nicht gefunden."); }
-      } catch (e) { alert("Netzwerkfehler."); }
+      } catch (e) { alert("Fehler."); }
     }
 
-    // EINTRAGEN
+    function searchManualCode() {
+      const c = document.getElementById('manual-code-input').value.trim();
+      if(c) { closeModal('manual-modal'); fetchBarcodeData(c); }
+    }
+
     function openAddModal() {
       document.getElementById('add-title').innerText = tempProduct.name;
-      document.getElementById('add-base').innerText = `Werte pro 100g: ${tempProduct.kcal100} kcal | P: ${tempProduct.p100}g | C: ${tempProduct.c100}g | F: ${tempProduct.f100}g`;
+      document.getElementById('add-base').innerText = `Pro 100g: ${tempProduct.kcal100} kcal | P: ${tempProduct.p100}g | C: ${tempProduct.c100}g | F: ${tempProduct.f100}g`;
       document.getElementById('add-grams').value = 100;
       openModal('add-modal');
     }
-
     function setGrams(g) { document.getElementById('add-grams').value = g; }
 
     function confirmAddFood() {
@@ -409,7 +435,8 @@
       const m = document.getElementById('add-meal').value;
       if (!g || g <= 0) return;
       const f = g / 100;
-      logData[m].push({
+      let d = getDayData();
+      d[m].push({
         id: Date.now(),
         name: tempProduct.name,
         grams: g,
@@ -418,32 +445,41 @@
         c: parseFloat((tempProduct.c100 * f).toFixed(1)),
         f: parseFloat((tempProduct.f100 * f).toFixed(1))
       });
-      localStorage.setItem('st_log', JSON.stringify(logData));
-      closeModal('add-modal');
-      renderLog();
+      saveDayData(); closeModal('add-modal'); renderLog();
     }
 
     function removeEntry(m, id) {
-      logData[m] = logData[m].filter(x => x.id !== id);
-      localStorage.setItem('st_log', JSON.stringify(logData));
-      renderLog();
+      let d = getDayData();
+      d[m] = d[m].filter(x => x.id !== id);
+      saveDayData(); renderLog();
+    }
+
+    // KAMERA
+    function toggleScanner() {
+      const wrap = document.getElementById('scanner-wrap');
+      if (isScanning) { Quagga.stop(); wrap.style.display = 'none'; isScanning = false; } 
+      else {
+        wrap.style.display = 'block'; isScanning = true;
+        Quagga.init({ inputStream: { name: "Live", type: "LiveStream", target: wrap, constraints: { facingMode: "environment" } }, decoder: { readers: ["ean_reader", "ean_8_reader"] } }, err => { if (err) { alert(err); toggleScanner(); return; } Quagga.start(); });
+        Quagga.onDetected(async res => { toggleScanner(); await fetchBarcodeData(res.codeResult.code); });
+      }
     }
 
     // RENDERING
     function renderTargets() {
       document.getElementById('target-cal-lbl').innerText = `von ${userTargets.kcal} kcal`;
-      document.getElementById('macro-p-val').innerText = `0 / ${userTargets.p}g`;
-      document.getElementById('macro-c-val').innerText = `0 / ${userTargets.c}g`;
-      document.getElementById('macro-f-val').innerText = `0 / ${userTargets.f}g`;
     }
 
     function renderLog() {
+      let d = getDayData();
       let totKcal = 0, totP = 0, totC = 0, totF = 0;
+      
+      // Meals
       ['breakfast', 'lunch', 'dinner', 'snack'].forEach(m => {
         const c = document.getElementById(`items-${m}`);
         c.innerHTML = '';
         let mk = 0;
-        logData[m].forEach(item => {
+        d[m].forEach(item => {
           totKcal += item.kcal; totP += item.p; totC += item.c; totF += item.f; mk += item.kcal;
           c.innerHTML += `<div class="food-item">
                             <div><div class="food-title">${item.name} (${item.grams}g)</div>
@@ -454,86 +490,30 @@
         document.getElementById(`cal-${m}`).innerText = `${mk} kcal`;
       });
 
+      // Dashboard Updates
       const rem = userTargets.kcal - totKcal;
       document.getElementById('remaining-cal').innerText = rem;
       document.getElementById('remaining-cal').style.color = rem < 0 ? 'var(--danger)' : 'var(--text)';
       document.getElementById('eaten-cal').innerText = `${totKcal}`;
       
-      const pct = Math.min(100, (totKcal / userTargets.kcal) * 100);
-      document.getElementById('cal-bar').style.width = pct + '%';
+      document.getElementById('cal-bar').style.width = Math.min(100, (totKcal / userTargets.kcal) * 100) + '%';
       
-      document.getElementById('macro-p-val').innerText = `${Math.round(totP)} / ${userTargets.p}g`;
+      document.getElementById('macro-p-val').innerText = `${Math.round(totP)}/${userTargets.p}g`;
       document.getElementById('p-bar').style.width = Math.min(100, (totP / userTargets.p) * 100) + '%';
-      document.getElementById('macro-c-val').innerText = `${Math.round(totC)} / ${userTargets.c}g`;
+      
+      document.getElementById('macro-c-val').innerText = `${Math.round(totC)}/${userTargets.c}g`;
       document.getElementById('c-bar').style.width = Math.min(100, (totC / userTargets.c) * 100) + '%';
-      document.getElementById('macro-f-val').innerText = `${Math.round(totF)} / ${userTargets.f}g`;
+      
+      document.getElementById('macro-f-val').innerText = `${Math.round(totF)}/${userTargets.f}g`;
       document.getElementById('f-bar').style.width = Math.min(100, (totF / userTargets.f) * 100) + '%';
-    }
 
-    // KAMERA SCANNER
-    function toggleScanner() {
-      const wrap = document.getElementById('scanner-wrap');
-      if (isScanning) {
-        Quagga.stop(); wrap.style.display = 'none'; isScanning = false;
-      } else {
-        wrap.style.display = 'block'; isScanning = true;
-        Quagga.init({
-          inputStream: { name: "Live", type: "LiveStream", target: wrap, constraints: { facingMode: "environment" } },
-          decoder: { readers: ["ean_reader", "ean_8_reader"] }
-        }, err => { if (err) { alert(err); toggleScanner(); return; } Quagga.start(); });
-        Quagga.onDetected(async res => { toggleScanner(); await fetchBarcodeData(res.codeResult.code); });
-      }
-    }
+      // Water Update
+      document.getElementById('water-val').innerText = `${d.water} ml`;
 
-    // ZIELE RECHNEN
-    function runMacroCalculator() {
-      const w = parseFloat(document.getElementById('calc-weight').value);
-      const goal = document.getElementById('calc-goal').value;
-      let tdee = 24 * w * 1.55; // Vereinfacht
-      let targetKcal = goal === 'recomp' ? Math.round(tdee - 150) : Math.round(tdee + parseInt(goal));
-      userTargets = { kcal: targetKcal, p: Math.round(w * 2.2), c: Math.round((targetKcal - ((w*2.2*4)+(w*0.85*9)))/4), f: Math.round(w * 0.85) };
-      localStorage.setItem('st_targets', JSON.stringify(userTargets));
-      renderTargets(); renderLog(); closeModal('calc-modal');
-    }
-
-    function searchManualCode() {
-      const c = document.getElementById('manual-code-input').value.trim();
-      if(c) { closeModal('manual-modal'); fetchBarcodeData(c); }
-    }
-
-    function saveGeminiKey() {
-      geminiKey = document.getElementById('gemini-key-input').value.trim();
-      localStorage.setItem('gemini_api_key', geminiKey);
-      closeModal('key-modal');
-    }
-
-    // KI TRACKING
-    async function processWithGemini() {
-      if (!geminiKey) { alert("Bitte hinterlege zuerst deinen Key!"); return; }
-      const file = document.getElementById('ai-file-input').files[0];
-      const text = document.getElementById('ai-text-input').value.trim();
-      const m = document.getElementById('ai-meal-target').value;
-      if (!file && !text) return;
-
-      document.getElementById('ai-loading').style.display = 'block';
-      document.getElementById('ai-submit-btn').disabled = true;
-
-      try {
-        let contents = [];
-        let prompt = `Analysiere Bild/Text. Antworte NUR in JSON: {"name": "Gericht", "grams": 350, "kcal": 450, "p": 35, "c": 40, "f": 15}`;
-        if (file) {
-          const b64 = await new Promise(r => { const rd = new FileReader(); rd.onload = () => r(rd.result); rd.readAsDataURL(file); });
-          contents.push({ parts: [{ text: prompt + text }, { inline_data: { mime_type: file.type, data: b64.split(',')[1] } }] });
-        } else { contents.push({ parts: [{ text: prompt + text }] }); }
-
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents }) });
-        const data = await res.json();
-        const j = JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json/g,'').replace(/```/g,''));
-        logData[m].push({ id: Date.now(), name: j.name, grams: j.grams||100, kcal: j.kcal, p: j.p, c: j.c, f: j.f });
-        localStorage.setItem('st_log', JSON.stringify(logData));
-        closeModal('ai-modal'); renderLog();
-      } catch (e) { alert("KI Fehler."); }
-      finally { document.getElementById('ai-loading').style.display = 'none'; document.getElementById('ai-submit-btn').disabled = false; }
+      // Habits Update
+      ['creatin', 'vitd', 'omega', 'zinc'].forEach(hab => {
+        document.getElementById(`hab-${hab}`).checked = d.habits[hab] || false;
+      });
     }
   </script>
 </body>
