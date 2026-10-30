@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>SmartTracker Ultra</title>
+  <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
+  <style>
+    :root {
+      --bg: #000000;
+      --surface: #111113;
+      --surface-glass: rgba(28, 28, 30, 0.7);
+      --text: #ffffff;
+      --muted: #8e8e93;
+      --primary: #0a84ff; /* Modernes iOS Blau */
+      --primary-glow: rgba(10, 132, 255, 0.3);
+      --ai: #bf5af2;
+      --protein: #30d158;
+      --carbs: #ff9f0a;
+      --fat: #ff453a;
+      --radius-lg: 24px;
+      --radius: 16px;
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background-color: var(--bg); color: var(--text); padding-bottom: 120px; }
+
+    /* Top Bar */
+    .header { position: sticky; top: 0; background: var(--surface-glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 40; padding: 20px 16px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .date-nav { display: flex; align-items: center; gap: 12px; }
+    .date-btn { background: none; border: none; color: var(--primary); font-size: 1.2rem; cursor: pointer; padding: 4px 8px; }
+    .date-lbl { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.3px; }
+    .profile-btn { background: var(--surface); border: 1px solid rgba(255,255,255,0.1); color: var(--text); padding: 6px 12px; border-radius: 99px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+
+    /* Dashboard Rings */
+    .dashboard { padding: 24px 16px; display: flex; flex-direction: column; align-items: center; gap: 24px; }
+    .cal-ring-container { position: relative; width: 180px; height: 180px; display: flex; justify-content: center; align-items: center; border-radius: 50%; background: conic-gradient(var(--primary) var(--pct, 0%), var(--surface) 0); box-shadow: 0 0 30px var(--primary-glow); transition: --pct 0.5s; }
+    .cal-ring-inner { position: absolute; width: 156px; height: 156px; background: var(--bg); border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    .cal-val { font-size: 2.2rem; font-weight: 800; letter-spacing: -1px; line-height: 1; margin-bottom: 4px; }
+    .cal-lbl { font-size: 0.8rem; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* Macro Bars (Apple Health Style) */
+    .macro-row { display: flex; justify-content: space-between; width: 100%; gap: 12px; }
+    .macro-item { flex: 1; background: var(--surface); padding: 14px; border-radius: var(--radius); border: 1px solid rgba(255,255,255,0.05); }
+    .m-title { font-size: 0.75rem; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+    .m-val { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+    .m-bar-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 99px; }
+    .m-bar-fill { height: 100%; border-radius: 99px; }
+
+    /* Meal Sections */
+    .meals { padding: 0 16px; display: flex; flex-direction: column; gap: 16px; }
+    .meal-card { background: var(--surface); border-radius: var(--radius-lg); padding: 16px; border: 1px solid rgba(255,255,255,0.05); }
+    .meal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .meal-title { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.3px; }
+    .meal-cal { font-size: 0.9rem; color: var(--muted); font-weight: 600; }
+    .food-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .food-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .food-name { font-size: 0.95rem; font-weight: 600; margin-bottom: 2px; }
+    .food-detail { font-size: 0.8rem; color: var(--muted); }
+    .food-del { color: var(--danger); background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 4px; }
+
+    /* Bottom Navigation Bar */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface-glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-around; padding: 12px 16px 24px; z-index: 50; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--muted); cursor: pointer; background: none; border: none; font-size: 0.75rem; font-weight: 500; }
+    .nav-item.active { color: var(--primary); }
+    .nav-item.ai { color: var(--ai); }
+    .nav-icon { font-size: 1.6rem; }
+
+    /* Modals / Bottom Sheets */
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; align-items: flex-end; }
+    .sheet { background: #1c1c1e; width: 100%; border-radius: 32px 32px 0 0; padding: 24px; max-height: 90vh; overflow-y: auto; box-shadow: 0 -10px 40px rgba(0,0,0,0.5); }
+    .sheet-handle { width: 40px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 10px; margin: 0 auto 20px; }
+    .sheet-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 20px; }
+    
+    .input-field { width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 16px; border-radius: var(--radius); font-size: 1rem; margin-bottom: 12px; outline: none; }
+    .input-field:focus { border-color: var(--primary); }
+    .btn { width: 100%; background: var(--primary); color: #fff; padding: 16px; border: none; border-radius: var(--radius); font-size: 1.05rem; font-weight: 600; cursor: pointer; margin-top: 8px; }
+    .btn.ai { background: var(--ai); }
+
+    /* AI Chat Area */
+    .chat-box { background: #000; border-radius: var(--radius); padding: 16px; min-height: 120px; max-height: 250px; overflow-y: auto; margin-bottom: 12px; font-size: 0.95rem; line-height: 1.5; border: 1px solid rgba(255,255,255,0.1); }
+    .ai-msg { color: var(--ai); margin-bottom: 8px; }
+    .user-msg { color: var(--text); margin-bottom: 8px; text-align: right; }
+
+    /* Search Results */
+    .search-res { background: #000; border-radius: var(--radius); padding: 12px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.05); }
+    .search-res-title { font-weight: 600; font-size: 0.95rem; }
+    
+    /* Scanner */
+    #scanner-wrap { display: none; position: fixed; inset: 0; background: #000; z-index: 90; }
+    #scanner-wrap video { width: 100%; height: 100%; object-fit: cover; }
+    .scan-aim { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70%; height: 150px; border: 3px solid var(--primary); border-radius: 20px; box-shadow: 0 0 0 4000px rgba(0,0,0,0.7); }
+    .scan-close { position: absolute; top: 40px; right: 20px; background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 99px; color: white; border: none; font-weight: bold; backdrop-filter: blur(10px); }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="date-nav">
+      <button class="date-btn" onclick="changeDate(-1)">◀</button>
+      <div class="date-lbl" id="date-lbl">Heute</div>
+      <button class="date-btn" onclick="changeDate(1)">▶</button>
+    </div>
+    <button class="profile-btn" onclick="openModal('settings-sheet')">Profil ⚙️</button>
+  </div>
+
+  <div class="dashboard">
+    <!-- Circular Calorie Progress -->
+    <div class="cal-ring-container" id="cal-ring">
+      <div class="cal-ring-inner">
+        <div class="cal-val" id="cal-rem">0</div>
+        <div class="cal-lbl">verbleibend</div>
+      </div>
+    </div>
+
+    <!-- Macro Bars -->
+    <div class="macro-row">
+      <div class="macro-item">
+        <div class="m-title" style="color: var(--protein)">PROTEIN</div>
+        <div class="m-val" id="val-p">0g</div>
+        <div class="m-bar-bg"><div class="m-bar-fill" id="bar-p" style="background: var(--protein)"></div></div>
+      </div>
+      <div class="macro-item">
+        <div class="m-title" style="color: var(--carbs)">CARBS</div>
+        <div class="m-val" id="val-c">0g</div>
+        <div class="m-bar-bg"><div class="m-bar-fill" id="bar-c" style="background: var(--carbs)"></div></div>
+      </div>
+      <div class="macro-item">
+        <div class="m-title" style="color: var(--fat)">FETT</div>
+        <div class="m-val" id="val-f">0g</div>
+        <div class="m-bar-bg"><div class="m-bar-fill" id="bar-f" style="background: var(--fat)"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="meals">
+    <div class="meal-card"><div class="meal-head"><div class="meal-title">🌅 Frühstück</div><div class="meal-cal" id="c-breakfast">0 kcal</div></div><div id="i-breakfast"></div></div>
+    <div class="meal-card"><div class="meal-head"><div class="meal-title">☀️ Mittag</div><div class="meal-cal" id="c-lunch">0 kcal</div></div><div id="i-lunch"></div></div>
+    <div class="meal-card"><div class="meal-head"><div class="meal-title">🌙 Abend</div><div class="meal-cal" id="c-dinner">0 kcal</div></div><div id="i-dinner"></div></div>
+    <div class="meal-card"><div class="meal-head"><div class="meal-title">🍎 Snacks</div><div class="meal-cal" id="c-snack">0 kcal</div></div><div id="i-snack"></div></div>
+  </div>
+
+  <!-- Bottom Navigation -->
+  <div class="bottom-nav">
+    <button class="nav-item active" onclick="window.scrollTo(0,0)"><span class="nav-icon">📖</span>Tagebuch</button>
+    <button class="nav-item" onclick="openModal('search-sheet')"><span class="nav-icon">🔍</span>Suchen</button>
+    <button class="nav-item" onclick="toggleScanner()"><span class="nav-icon">📷</span>Barcode</button>
+    <button class="nav-item ai" onclick="openModal('ai-sheet')"><span class="nav-icon">✨</span>KI Chat</button>
+  </div>
+
+  <!-- Scanner Overlay -->
+  <div id="scanner-wrap">
+    <button class="scan-close" onclick="toggleScanner()">Abbrechen</button>
+    <div class="scan-aim"></div>
+  </div>
+
+  <!-- MODAL: Textsuche (Österreich Fokus) -->
+  <div class="modal" id="search-sheet">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Produktsuche (AT)</div>
+      <input type="text" id="search-input" class="input-field" placeholder="z.B. Bio-Kornspitz, Skyr, S-Budget...">
+      <button class="btn" onclick="runSearch()">Suchen</button>
+      <div id="search-loading" style="display:none; text-align:center; padding:20px; color:var(--primary);">Suche läuft...</div>
+      <div id="search-results" style="margin-top: 16px;"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: KI Chat -->
+  <div class="modal" id="ai-sheet">
+    <div class="sheet" style="height: 85vh; display: flex; flex-direction: column;">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title" style="color: var(--ai);">✨ KI Assistent</div>
+      <div class="chat-box" id="ai-chat-box">
+        <div class="ai-msg">Hallo! Ich bin deine KI. Sag mir einfach, was du gegessen hast (z.B. "1 Apfel und 2 Eier") oder frag mich nach Tipps ("Mir fehlen noch 30g Protein, was tun?").</div>
+      </div>
+      <textarea id="ai-input" class="input-field" rows="2" placeholder="Was hast du gegessen? Oder was willst du wissen?"></textarea>
+      <select id="ai-meal" class="input-field" style="padding: 12px; margin-bottom: 8px;">
+        <option value="lunch">Mittagessen</option>
+        <option value="dinner">Abendessen</option>
+        <option value="breakfast">Frühstück</option>
+        <option value="snack">Snack</option>
+      </select>
+      <button class="btn ai" id="ai-btn" onclick="sendToAI()">Senden / Eintragen</button>
+    </div>
+  </div>
+
+  <!-- MODAL: Produkt Abwiegen -->
+  <div class="modal" id="add-sheet">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title" id="add-name">Produkt</div>
+      <div style="color: var(--muted); margin-bottom: 16px;" id="add-base"></div>
+      <input type="number" id="add-g" class="input-field" value="100" placeholder="Gramm">
+      <select id="add-m" class="input-field"><option value="breakfast">Frühstück</option><option value="lunch">Mittag</option><option value="dinner">Abend</option><option value="snack">Snack</option></select>
+      <button class="btn" onclick="saveFood()">Hinzufügen</button>
+    </div>
+  </div>
+
+  <!-- MODAL: Settings -->
+  <div class="modal" id="settings-sheet">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Einstellungen</div>
+      <label style="color: var(--muted); font-size: 0.8rem; margin-bottom: 4px; display: block;">Gemini API Key (für KI)</label>
+      <input type="password" id="set-key" class="input-field" placeholder="AIzaSy...">
+      <label style="color: var(--muted); font-size: 0.8rem; margin-bottom: 4px; display: block; margin-top: 12px;">Tagesziel (kcal)</label>
+      <input type="number" id="set-kcal" class="input-field" value="2050">
+      <div style="display:flex; gap:8px;">
+        <input type="number" id="set-p" class="input-field" placeholder="Protein (g)">
+        <input type="number" id="set-c" class="input-field" placeholder="Carbs (g)">
+        <input type="number" id="set-f" class="input-field" placeholder="Fett (g)">
+      </div>
+      <button class="btn" onclick="saveSettings()">Speichern</button>
+    </div>
+  </div>
+
+  <script>
+    // --- STATE MANAGEMENT ---
+    let d = new Date();
+    let dStr = d.toISOString().split('T')[0];
+    let db = JSON.parse(localStorage.getItem('st_ultra_db')) || {};
+    let targets = JSON.parse(localStorage.getItem('st_targets')) || { k: 2050, p: 160, c: 220, f: 60 };
+    let apiKey = localStorage.getItem('gemini_api_key') || '';
+    let tProd = null;
+    let scanOn = false;
+
+    function getD() {
+      if(!db[dStr]) db[dStr] = { breakfast: [], lunch: [], dinner: [], snack: [] };
+      return db[dStr];
+    }
+    function saveD() { localStorage.setItem('st_ultra_db', JSON.stringify(db)); render(); }
+
+    function changeDate(n) {
+      d.setDate(d.getDate() + n);
+      dStr = d.toISOString().split('T')[0];
+      document.getElementById('date-lbl').innerText = (dStr === new Date().toISOString().split('T')[0]) ? "Heute" : dStr.split('-').reverse().join('.');
+      render();
+    }
+
+    // --- UI HELPERS ---
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    window.onclick = function(e) { 
+      if(e.target.classList.contains('modal')) e.target.style.display = 'none'; 
+    }
+
+    // --- SETTINGS ---
+    document.getElementById('set-key').value = apiKey;
+    document.getElementById('set-kcal').value = targets.k;
+    document.getElementById('set-p').value = targets.p;
+    document.getElementById('set-c').value = targets.c;
+    document.getElementById('set-f').value = targets.f;
+
+    function saveSettings() {
+      apiKey = document.getElementById('set-key').value;
+      localStorage.setItem('gemini_api_key', apiKey);
+      targets = { 
+        k: parseInt(document.getElementById('set-kcal').value) || 2050,
+        p: parseInt(document.getElementById('set-p').value) || 160,
+        c: parseInt(document.getElementById('set-c').value) || 220,
+        f: parseInt(document.getElementById('set-f').value) || 60
+      };
+      localStorage.setItem('st_targets', JSON.stringify(targets));
+      document.getElementById('settings-sheet').style.display = 'none';
+      render();
+    }
+
+    // --- SEARCH (AUSTRIAN ENDPOINT) ---
+    async function runSearch() {
+      const q = document.getElementById('search-input').value.trim();
+      if(!q) return;
+      const resDiv = document.getElementById('search-results');
+      document.getElementById('search-loading').style.display = 'block';
+      resDiv.innerHTML = '';
+      
+      try {
+        // Nutzt den 'at' Endpunkt für österreichische Produkte (Spar, Billa, Hofer priorisiert)
+        const url = `https://at.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=15`;
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        if (data.products && data.products.length > 0) {
+          data.products.forEach(p => {
+            const n = p.nutriments || {};
+            const k = Math.round(n['energy-kcal_100g'] || 0);
+            const pr = parseFloat((n.proteins_100g || 0).toFixed(1));
+            const c = parseFloat((n.carbohydrates_100g || 0).toFixed(1));
+            const f = parseFloat((n.fat_100g || 0).toFixed(1));
+            
+            resDiv.innerHTML += `
+              <div class="search-res" onclick="prepFood('${p.product_name || "Unbekannt"}', ${k}, ${pr}, ${c}, ${f})">
+                <div class="search-res-title">${p.product_name || "Unbekannt"} <span style="font-weight:400;color:var(--muted)">${p.brands||""}</span></div>
+                <div style="font-size:0.8rem;color:var(--muted);margin-top:4px;">100g: ${k} kcal | P: ${pr}g</div>
+              </div>`;
+          });
+        } else { resDiv.innerHTML = '<div style="color:var(--muted)">Keine Produkte gefunden.</div>'; }
+      } catch(e) { resDiv.innerHTML = '<div style="color:var(--danger)">Verbindungsfehler.</div>'; }
+      document.getElementById('search-loading').style.display = 'none';
+    }
+
+    // --- ADD FOOD ---
+    function prepFood(n, k, p, c, f) {
+      tProd = { n, k, p, c, f };
+      document.getElementById('search-sheet').style.display = 'none';
+      document.getElementById('add-name').innerText = n;
+      document.getElementById('add-base').innerText = `100g: ${k} kcal | P:${p} C:${c} F:${f}`;
+      openModal('add-sheet');
+    }
+
+    function saveFood() {
+      const g = parseFloat(document.getElementById('add-g').value);
+      const m = document.getElementById('add-m').value;
+      if(!g) return;
+      const fac = g / 100;
+      getD()[m].push({
+        id: Date.now(), n: tProd.n, g: g,
+        k: Math.round(tProd.k * fac), p: Math.round(tProd.p * fac),
+        c: Math.round(tProd.c * fac), f: Math.round(tProd.f * fac)
+      });
+      saveD();
+      document.getElementById('add-sheet').style.display = 'none';
+    }
+
+    function delFood(m, id) {
+      getD()[m] = getD()[m].filter(x => x.id !== id);
+      saveD();
+    }
+
+    // --- SCANNER ---
+    function toggleScanner() {
+      const w = document.getElementById('scanner-wrap');
+      if (scanOn) { Quagga.stop(); w.style.display = 'none'; scanOn = false; } 
+      else {
+        w.style.display = 'block'; scanOn = true;
+        Quagga.init({ inputStream: { name: "Live", type: "LiveStream", target: w, constraints: { facingMode: "environment" } }, decoder: { readers: ["ean_reader"] } }, err => { if (err) { alert(err); toggleScanner(); return; } Quagga.start(); });
+        Quagga.onDetected(async res => { toggleScanner(); await handleCode(res.codeResult.code); });
+      }
+    }
+
+    async function handleCode(c) {
+      try {
+        const res = await fetch(`https://at.openfoodfacts.org/api/v2/product/${c}.json`);
+        const d = await res.json();
+        if (d.status === 1) {
+          const n = d.product.nutriments || {};
+          prepFood(d.product.product_name||"Unbekannt", Math.round(n['energy-kcal_100g']||0), parseFloat((n.proteins_100g||0).toFixed(1)), parseFloat((n.carbohydrates_100g||0).toFixed(1)), parseFloat((n.fat_100g||0).toFixed(1)));
+        } else { alert("Nicht gefunden."); }
+      } catch(e) {}
+    }
+
+    // --- AI CHAT LOGIC ---
+    async function sendToAI() {
+      if(!apiKey) { alert("Bitte in den Profil-Settings deinen Gemini API Key eintragen!"); return; }
+      const input = document.getElementById('ai-input').value.trim();
+      if(!input) return;
+      
+      const box = document.getElementById('ai-chat-box');
+      box.innerHTML += `<div class="user-msg">${input}</div>`;
+      document.getElementById('ai-input').value = '';
+      document.getElementById('ai-btn').innerText = 'Denkt nach...';
+      document.getElementById('ai-btn').disabled = true;
+
+      // Starker Prompt: Versteht österreichische Begriffe (Topfen) und entscheidet selbst, ob es ein Log oder eine Chat-Antwort ist.
+      const prompt = `Du bist ein Ernährungs-KI-Assistent für einen Nutzer in Österreich (verwende/verstehe Begriffe wie Topfen, Bio-Kornspitz, Skyr). 
+      Zwei Szenarien:
+      1. Der User beschreibt, was er gegessen hat (z.B. "1 Kornspitz mit 50g Putenbrust"). -> Extrahiere/Schätze die Nährwerte und antworte AUSSCHLIESSLICH mit einem JSON in diesem Format: {"type": "log", "name": "Kornspitz mit Pute", "g": 130, "k": 320, "p": 25, "c": 35, "f": 5}
+      2. Der User stellt eine Frage (z.B. "Mir fehlen 400 kcal, was kann ich machen?"). -> Antworte als Text im JSON Format: {"type": "chat", "msg": "Dein Rezept-Tipp..."}
+      Antworte NUR mit purem JSON, keine Markdown-Blöcke.
+      User Input: "${input}"`;
+
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        const data = await res.json();
+        const raw = data.candidates[0].content.parts[0].text.replace(/```json/g,'').replace(/```/g,'').trim();
+        const j = JSON.parse(raw);
+
+        if(j.type === 'log') {
+          const m = document.getElementById('ai-meal').value;
+          getD()[m].push({ id: Date.now(), n: j.name, g: j.g||100, k: j.k, p: j.p, c: j.c, f: j.f });
+          saveD();
+          box.innerHTML += `<div class="ai-msg">✅ <b>${j.name}</b> wurde eingetragen! (${j.k} kcal, ${j.p}g Protein).</div>`;
+        } else {
+          box.innerHTML += `<div class="ai-msg">${j.msg}</div>`;
+        }
+      } catch(e) { box.innerHTML += `<div class="ai-msg" style="color:var(--danger)">Fehler bei der KI-Anfrage.</div>`; }
+      
+      document.getElementById('ai-btn').innerText = 'Senden / Eintragen';
+      document.getElementById('ai-btn').disabled = false;
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // --- RENDER DASHBOARD ---
+    function render() {
+      let tk = 0, tp = 0, tc = 0, tf = 0;
+      ['breakfast', 'lunch', 'dinner', 'snack'].forEach(m => {
+        const c = document.getElementById(`i-${m}`);
+        c.innerHTML = '';
+        let mk = 0;
+        getD()[m].forEach(i => {
+          tk += i.k; tp += i.p; tc += i.c; tf += i.f; mk += i.k;
+          c.innerHTML += `
+            <div class="food-item">
+              <div><div class="food-name">${i.n} <span style="font-weight:400;color:var(--muted)">(${i.g}g)</span></div>
+              <div class="food-detail">${i.k} kcal | P:${i.p} C:${i.c} F:${i.f}</div></div>
+              <button class="food-del" onclick="delFood('${m}', ${i.id})">✕</button>
+            </div>`;
+        });
+        document.getElementById(`c-${m}`).innerText = `${mk} kcal`;
+      });
+
+      // Calorie Ring
+      const rem = targets.k - tk;
+      document.getElementById('cal-rem').innerText = rem;
+      document.getElementById('cal-rem').style.color = rem < 0 ? 'var(--danger)' : 'var(--text)';
+      let pct = Math.min(100, (tk / targets.k) * 100);
+      document.getElementById('cal-ring').style.setProperty('--pct', `${pct}%`);
+
+      // Macros
+      document.getElementById('val-p').innerText = `${tp} / ${targets.p}g`;
+      document.getElementById('bar-p').style.width = `${Math.min(100, (tp/targets.p)*100)}%`;
+      document.getElementById('val-c').innerText = `${tc} / ${targets.c}g`;
+      document.getElementById('bar-c').style.width = `${Math.min(100, (tc/targets.c)*100)}%`;
+      document.getElementById('val-f').innerText = `${tf} / ${targets.f}g`;
+      document.getElementById('bar-f').style.width = `${Math.min(100, (tf/targets.f)*100)}%`;
+    }
+
+    render();
+  </script>
+</body>
+</html>
